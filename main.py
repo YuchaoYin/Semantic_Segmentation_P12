@@ -64,25 +64,25 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     """
     # TODO: Implement function
     layer3conv1x1 = tf.layers.conv2d(vgg_layer3_out, num_classes, 1
-                                     , padding='same', kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
+                                     , padding='same', kernel_regularizer=tf.contrib.layers.l2_regularizer(0.5))
     layer4conv1x1 = tf.layers.conv2d(vgg_layer4_out, num_classes, 1
-                                     , padding='same', kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
+                                     , padding='same', kernel_regularizer=tf.contrib.layers.l2_regularizer(0.5))
     layer7conv1x1 = tf.layers.conv2d(vgg_layer7_out, num_classes, 1
-                                     , padding='same', kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
+                                     , padding='same', kernel_regularizer=tf.contrib.layers.l2_regularizer(0.5))
 
     # deconvolution
-    deconv1 = tf.layers.conv2d_transpose(layer7conv1x1, num_classes, 4, 2, padding='same'
-                                         , kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
+    deconv1 = tf.layers.conv2d_transpose(layer7conv1x1, vgg_layer4_out.get_shape().as_list()[-1], 4, 2,
+                                         padding='same', kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
 
     # add skip connection
-    skipconnected1 = tf.add(deconv1, layer4conv1x1)
+    skipconnected1 = tf.add(deconv1, vgg_layer4_out)
 
     # deconvolution
-    deconv2 = tf.layers.conv2d_transpose(skipconnected1, num_classes, 4, 2, padding='same'
-                                         , kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
+    deconv2 = tf.layers.conv2d_transpose(skipconnected1, vgg_layer3_out.get_shape().as_list()[-1], 4, 2,
+                                         padding='same', kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
 
     # add skip connection
-    skipconnected2 = tf.add(deconv2, layer3conv1x1)
+    skipconnected2 = tf.add(deconv2, vgg_layer3_out)
 
     # deconvolution
     deconv3 = tf.layers.conv2d_transpose(skipconnected2, num_classes, 16, 8, padding='same'
@@ -137,10 +137,10 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
     for epoch in range(epochs):
         for image, label in get_batches_fn(batch_size):
             _, loss = sess.run(fetches=[train_op, cross_entropy_loss],
-                               feed_dict={input_image: image, correct_label: label, keep_prob: 0.25,
+                               feed_dict={input_image: image, correct_label: label, keep_prob: 0.75,
                                           learning_rate: 1e-4})
 
-    print("Epoch %d of %d: Training loss: %.4f" % (epoch + 1, epochs, loss))
+        print("Epoch %d of %d: Training loss: %.4f" % (epoch + 1, epochs, loss))
 
 
 tests.test_train_nn(train_nn)
@@ -160,7 +160,7 @@ def run():
     # You'll need a GPU with at least 10 teraFLOPS to train on.
     #  https://www.cityscapes-dataset.com/
 
-    epochs = 30
+    epochs = 50
     batch_size = 8
 
     with tf.Session() as sess:
@@ -194,7 +194,7 @@ def run():
                  keepProb, learning_rate)
 
         # save
-        helper.save_inference_samples(runs_dir, data_dir, sess, image_shape, logits, keepProb, imageInput, epochs)
+        helper.save_inference_samples(runs_dir, data_dir, sess, image_shape, logits, keepProb, imageInput)
 
 
         # OPTIONAL: Apply the trained model to a video
