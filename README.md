@@ -1,3 +1,26 @@
+# Result Example (more output pics can be found in /runs)
+
+Segmentation Result          |  Loss Screen Shot
+:-------------------------:|:-------------------------:
+![Segmentation Result](./runs/1547910412.668352/um_000061.png)  |  ![Loss Screenshot](loss_screenshot.png)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # Semantic Segmentation
 ### Introduction
 In this project, you'll label the pixels of a road in images using a Fully Convolutional Network (FCN).
