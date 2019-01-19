@@ -154,11 +154,14 @@ def run():
     tests.test_for_kitti_dataset(data_dir)
 
     # Download pretrained vgg model
-    helper.maybe_download_pretrained_vgg(data_dir)
+    # helper.maybe_download_pretrained_vgg(data_dir)
 
     # OPTIONAL: Train and Inference on the cityscapes dataset instead of the Kitti dataset.
     # You'll need a GPU with at least 10 teraFLOPS to train on.
     #  https://www.cityscapes-dataset.com/
+
+    epochs = 30
+    batch_size = 8
 
     with tf.Session() as sess:
         # Path to vgg model
@@ -176,8 +179,28 @@ def run():
         # TODO: Save inference data using helper.save_inference_samples
         #  helper.save_inference_samples(runs_dir, data_dir, sess, image_shape, logits, keep_prob, input_image)
 
+        imageInput, keepProb, layer3Out, layer4Out, layer7Out = load_vgg(sess, vgg_path)
+
+        outputLayer = layers(layer3Out, layer4Out, layer7Out, num_classes)
+
+        labels = tf.placeholder(dtype=tf.float32, shape=(None, None, None, num_classes))
+        learning_rate = tf.placeholder(dtype=tf.float32)
+
+        logits, train_step, cross_entropy_loss = optimize(outputLayer, labels, learning_rate, num_classes)
+
+        sess.run(tf.global_variables_initializer())
+
+        train_nn(sess, epochs, batch_size, get_batches_fn, train_step, cross_entropy_loss, imageInput, labels,
+                 keepProb, learning_rate)
+
+        # save
+        helper.save_inference_samples(runs_dir, data_dir, sess, image_shape, logits, keepProb, imageInput, epochs)
+
+
         # OPTIONAL: Apply the trained model to a video
 
 
 if __name__ == '__main__':
+    data_dir = './data'
+    run_dir = './run'
     run()
