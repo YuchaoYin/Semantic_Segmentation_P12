@@ -1,14 +1,19 @@
 #!/usr/bin/env python3
 import os.path
+from typing import List, Any, Union
+
 import tensorflow as tf
+from tensorflow import Tensor
+from tensorflow.python.keras.engine.base_layer import DeferredTensor
+
 import helper
 import warnings
 from distutils.version import LooseVersion
 import project_tests as tests
 
-
 # Check TensorFlow Version
-assert LooseVersion(tf.__version__) >= LooseVersion('1.0'), 'Please use TensorFlow version 1.0 or newer.  You are using {}'.format(tf.__version__)
+assert LooseVersion(tf.__version__) >= LooseVersion(
+    '1.0'), 'Please use TensorFlow version 1.0 or newer.  You are using {}'.format(tf.__version__)
 print('TensorFlow Version: {}'.format(tf.__version__))
 
 # Check for a GPU
@@ -42,9 +47,9 @@ def load_vgg(sess, vgg_path):
     layer4Out = graph.get_tensor_by_name(vgg_layer4_out_tensor_name)
     layer7Out = graph.get_tensor_by_name(vgg_layer7_out_tensor_name)
 
-
-    
     return imageInput, keepProb, layer3Out, layer4Out, layer7Out
+
+
 tests.test_load_vgg(load_vgg, tf)
 
 
@@ -58,14 +63,39 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     :return: The Tensor for the last layer of output
     """
     # TODO: Implement function
-    return None
-tests.test_layers(layers)
+    layer3conv1x1 = tf.layers.conv2d(vgg_layer3_out, num_classes, 1
+                                     , padding='same', kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
+    layer4conv1x1 = tf.layers.conv2d(vgg_layer4_out, num_classes, 1
+                                     , padding='same', kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
+    layer7conv1x1 = tf.layers.conv2d(vgg_layer7_out, num_classes, 1
+                                     , padding='same', kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
+
+    # deconvolution
+    deconv1 = tf.layers.conv2d_transpose(layer7conv1x1, num_classes, 4, 2, padding='same'
+                                         , kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
+
+    # add skip connection
+    skipconnected1 = tf.add(deconv1, layer4conv1x1)
+
+    # deconvolution
+    deconv2 = tf.layers.conv2d_transpose(skipconnected1, num_classes, 4, 2, padding='same'
+                                         , kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
+
+    # add skip connection
+    skipconnected2 = tf.add(deconv2, layer3conv1x1)
+
+    # deconvolution
+    deconv3 = tf.layers.conv2d_transpose(skipconnected2, num_classes, 16, 8, padding='same'
+                                         , kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
+
+    return deconv3
 
 
 def optimize(nn_last_layer, correct_label, learning_rate, num_classes):
     """
     Build the TensorFLow loss and optimizer operations.
     :param nn_last_layer: TF Tensor of the last layer in the neural network
+tests.test_layers(layers)
     :param correct_label: TF Placeholder for the correct label image
     :param learning_rate: TF Placeholder for the learning rate
     :param num_classes: Number of classes to classify
@@ -73,6 +103,8 @@ def optimize(nn_last_layer, correct_label, learning_rate, num_classes):
     """
     # TODO: Implement function
     return None, None, None
+
+
 tests.test_optimize(optimize)
 
 
@@ -93,6 +125,8 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
     """
     # TODO: Implement function
     pass
+
+
 tests.test_train_nn(train_nn)
 
 
